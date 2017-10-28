@@ -1,6 +1,8 @@
 #include <3ds.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <malloc.h>
+#include <unistd.h>
 
 #include "cb3ds.h"
 #include "comicselect.h"
@@ -8,16 +10,51 @@
 #include "archivezip.h"
 #include "image.h"
 
+// totally jacked from portal3ds
+/*extern u8 __end__[];        // end of static code and data
+extern u8* fake_heap_start;
+extern u8* fake_heap_end;
+
+u8 *getHeapStart() {
+	return __end__;
+}
+
+u8 *getHeapEnd() {
+	return (u8 *)sbrk(0);
+}
+
+u8 *getHeapLimit() {
+	return fake_heap_end;
+}
+
+size_t latestUsed, latestFree;
+
+size_t getMemUsed() {
+	struct mallinfo mi = mallinfo();
+	latestUsed=mi.uordblks;
+	return latestUsed;
+}
+
+size_t getMemFree() {
+	struct mallinfo mi = mallinfo();
+	latestFree=mi.fordblks + (getHeapLimit() - getHeapEnd());
+	return latestFree;
+}
+*/
+
 // plans for tonight
 // * look into gpu rendering
 //      possibly similar renderer struct
 //      6mb of vram, decently sized images can fit in there.
-//      lose the ability to pass texture buffer directly due to bgr/rgb issues
-// * look into removing threading and find a gettick function
-//      figure I can spend 10ms a loop decoding jpeg
-//      have a image_read_incremental function instead
-//      of passing it off to a thread
-//      also possible lookahead for images
+//      lose the ability to pass texture buffer directly due to bgr/rgb issues?
+// * use archive_t abstraction in code
+//      add archive_file_t, which has functions to read data from the zip
+//      as if it were a normal file.
+//      then modify the image functions to use these handles
+//      this will greatly reduce memory usage as the entire jpeg will
+//      no longer have to be in memory
+//      zip reading is quick enough that this should not affect jpeg read time
+//      by a significant amount
 //
 
 
@@ -38,6 +75,10 @@ void cb3ds_init(cb3ds_t *cb3ds)
     //renderer_init(cb3ds->renderer);
     //cb3ds->scene = malloc(sizeof(scene_manager_t));
     //scene_manager_init(cb3ds->scene);
+}
+
+void dosomething() {
+    printf("really?\n");
 }
 
 void cb3ds_run(cb3ds_t *cb3ds)
@@ -77,17 +118,20 @@ void cb3ds_run(cb3ds_t *cb3ds)
     //sprite->subrect.h = 240;
     //printf("%X\n", (unsigned int)sprite->texture);*/
 
+    scene_manager_init();
 
     scene_t comicselect;
     comic_select_scene_init(&comicselect);
     scene_set(&comicselect);
     //scene_push(cb3ds->scene, &comicselect);
     //comicselect.init(comicselect.data);
-
+    
     while (aptMainLoop()) {
-		hidScanInput();
-		u32 kDown = hidKeysDown();
-		if (kDown & KEY_START) break;
+        hidScanInput();
+        u32 kDown = hidKeysDown();
+        if (kDown & KEY_START) break;
+        
+        //dprintf("mem used: %d, mem free: %d", getMemUsed(), getMemFree());
 
         //comicselect.update(comicselect.data);
         //comicselect.draw(comicselect.data);
@@ -95,7 +139,6 @@ void cb3ds_run(cb3ds_t *cb3ds)
         //printf("a%ld\n", svcGetSystemTick());
         //printf("b%ld\n", osGetTime());
         //scene_draw(cb3ds->scene);
-            
 		//u32 kheld = hidKeysHeld();
         /*if (kheld & KEY_RIGHT) {
             sprite->subrect.x += 10;

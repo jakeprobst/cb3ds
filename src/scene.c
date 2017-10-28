@@ -1,31 +1,36 @@
 #include "scene.h"
 #include <stdlib.h>
+#include <stdio.h>
 
+#include "texture.h"
 typedef struct scene_manager_t {
     scene_t scene;
 } scene_manager_t;
 
-scene_manager_t scene_manager;
+scene_manager_t* scene_manager;
 
 
 void scene_manager_init()
 {
-    
+    scene_manager = malloc(sizeof(scene_manager_t));
+    printf("sm: %p", scene_manager);
+    scene_manager->scene.data = NULL;
 }
 
 void scene_set(scene_t* scene)
 {
-    if (scene_manager.scene.data != NULL) {
-        scene_manager.scene.destroy(scene_manager.scene.data);
-        free(scene_manager.scene.data);
+    if (scene_manager->scene.data != NULL) {
+        scene_manager->scene.destroy(scene_manager->scene.data);
+        free(scene_manager->scene.data);
     }
     scene->init(scene->data);
-    scene_manager.scene = *scene;
+    scene_manager->scene = *scene;
 }
 
 void scene_update()
 {
-    scene_manager.scene.update(scene_manager.scene.data);
+    scene_manager->scene.update(scene_manager->scene.data);
+    //dprintf("su");
 }
 
 /*void scene_manager_init(scene_manager_t* manager)

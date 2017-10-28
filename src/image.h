@@ -35,6 +35,32 @@ typedef struct image_read_async_t {
 } image_read_async_t;
 
 
+typedef struct image_read_incremental_t {
+    image_type_t type;
+    texture_t* texture;
+    u8* data;
+    int size;
+    bool finished;
+    bool ready;
+    union {
+        struct {
+            struct jpeg_error_mgr jerr;
+            struct jpeg_decompress_struct jinfo;
+            int rowspan;
+        } jpeg;
+        struct {
+        } png;
+    };
+} image_read_incremental_t;
+
+void image_read_incremental_init(image_read_incremental_t* incremental);
+void image_read_incremental_prepare(image_read_incremental_t* incremental, u8* data, int size);
+// needs better name
+void image_read_incremental_run(image_read_incremental_t* incremental);
+void image_read_incremental_destroy(image_read_incremental_t* incremental);
+
+
+
 texture_t* image_read(u8* data, int size);
 
 bool is_valid_image(u8* data, int size);

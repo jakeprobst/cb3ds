@@ -39,6 +39,7 @@ void comic_select_init(void* data)
     for(int cindex = 0; (entry = readdir(files)); cindex++) {
         comic_option_t* comicoption = malloc(sizeof(comic_option_t));
         comic_option_init(comicoption, strdup(entry->d_name), cindex);
+        //comic_option_init(comicoption, "placeholder", cindex);
         
         scene->comic_options[cindex] = comicoption;
     }
@@ -50,6 +51,7 @@ void comic_select_init(void* data)
         comic_option_t* opt = scene->comic_options[i];
         comic_option_make_name(opt, &scene->textrender);
     }
+    
     /*scene->test = malloc(sizeof(sprite_t));
     sprite_init(scene->test);
     texture_t* texture = malloc(sizeof(texture_t));
@@ -61,8 +63,7 @@ void comic_select_init(void* data)
             texture->data[(y * texture->width + x)*3 + 1] = 0x00;
             texture->data[(y * texture->width + x)*3 + 2] = 0x00;
         }
-    }*/
-
+        }*/
 }
 
 void comic_select_draw(void* data)
@@ -99,7 +100,7 @@ void comic_select_update(void* data)
         scene->yoffset += 6;
     }
 
-    if (kHeld & KEY_TOUCH) {
+    //if (kHeld & KEY_TOUCH) {
         touchPosition touch;
         hidTouchRead(&touch);
         if (prevtouch == -1) {
@@ -107,11 +108,11 @@ void comic_select_update(void* data)
         }
         scene->yoffset -= touch.py - prevtouch;
         prevtouch = touch.py;
-    }
-    else {
-        prevtouch = -1;
-    }
-
+        //}
+//else {
+//      prevtouch = -1;
+//  }
+    
     if (kDown & KEY_A) {
         scene_t view;
         comic_option_t* opt = get_selected_comic(scene->comic_options, scene->comic_count);
@@ -149,12 +150,15 @@ void comic_select_destroy(void* data)
     free(scene->comic_options);
 }
 
+void athing()
+{
+    printf("hahahaha\n");
+}
+
 void comic_select_scene_init(scene_t* scene)
 {
     scene->data = malloc(sizeof(comic_select_scene_t));
-
     scene->init = &comic_select_init;
     scene->destroy = &comic_select_destroy;
     scene->update = &comic_select_update;
-    //scene->draw = &comic_select_draw;
 }

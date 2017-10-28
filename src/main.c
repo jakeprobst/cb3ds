@@ -14,6 +14,7 @@ int main()
     cb3ds_init(&cb3ds);
     cb3ds_run(&cb3ds);
     cb3ds_destroy(&cb3ds);
+    gfxExit();
     return 0;
 }
 

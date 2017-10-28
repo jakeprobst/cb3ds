@@ -5,7 +5,7 @@
 
 void comic_select_scene_init(scene_t*);
 
-
+void athing();
 
 
 

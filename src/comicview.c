@@ -19,42 +19,31 @@ typedef struct comic_view_scene_t {
 
     archive_zip_t zip;
 
-    image_read_async_t imgasync;
+    //image_read_async_t imgasync;
+    image_read_incremental_t imgincr;
 } comic_view_scene_t;
 
 void comic_view_next_page(comic_view_scene_t* cview)
 {
-    dprintf("destroy");
-    cview->wantnextpage = true;
-    image_read_async_abort(&cview->imgasync);
-}
-
-void comic_view_check_next_page_avail(comic_view_scene_t* cview)
-{
-    if (!cview->wantnextpage || !cview->imgasync.finished) {
+    cview->current_page++;
+    if (cview->current_page > cview->zip.file_count) {
         return;
     }
+    
+    archive_handle_t page = archive_zip_read(&cview->zip, cview->current_page);
     if (cview->pageimage->texture) {
         texture_destroy(cview->pageimage->texture);
-        cview->pageimage->texture = NULL;
     }
-    dprintf("a");
-    cview->current_page++;
-    archive_handle_t page = archive_zip_read(&cview->zip, cview->current_page);
-
-    dprintf("b");
+ 
     if (is_valid_image(page.data, page.size)) {
-        image_read_async_prepare(&cview->imgasync, page.data, page.size);
-        sprite_set_texture(cview->pageimage, cview->imgasync.texture);
-        image_read_async_start(&cview->imgasync);
+        image_read_incremental_prepare(&cview->imgincr, page.data, page.size);
+        image_read_incremental_run(&cview->imgincr);
+        sprite_set_texture(cview->pageimage, cview->imgincr.texture);
     }
     else {
         free(page.data);
-        comic_view_check_next_page_avail(cview);
+        comic_view_next_page(cview);
     }
-    
-    dprintf("c");
-    cview->wantnextpage = false;
 }
 
 void comic_view_init(void* data)
@@ -75,10 +64,10 @@ void comic_view_init(void* data)
     //text_render_init(&text, "default.ttf");
     //sprite_set_texture(cview->pageimage, render_text(&text, cview->zip.files[1]->name, 20, color(0,0,0)));
 
-    image_read_async_init(&cview->imgasync);
+    //image_read_async_init(&cview->imgasync);
     
-    comic_view_next_page(cview);
-    comic_view_check_next_page_avail(cview);
+    //comic_view_next_page(cview);
+    //comic_view_check_next_page_avail(cview);
 
     //archive_handle_t page = archive_zip_read(&cview->zip, 2);
     
@@ -90,6 +79,9 @@ void comic_view_init(void* data)
     //image_read_async_start(&cview->imgasync);
     
     //minimap_set_page(&cview->minimap, cview->pageimage);
+    image_read_incremental_init(&cview->imgincr);
+    comic_view_next_page(cview);
+    minimap_new_page(&cview->minimap, cview->pageimage);
 
     //cview->pageimage->subrect.x = 0;
     //cview->pageimage->subrect.y = 0;
@@ -100,37 +92,45 @@ void comic_view_init(void* data)
 void comic_view_destroy(void* data)
 {
     comic_view_scene_t* cview = data;
-    image_read_async_destroy(&cview->imgasync);
+    //image_read_async_destroy(&cview->imgasync);
+    image_read_incremental_destroy(&cview->imgincr);
 }
 
 
 
-// figure out why minimap_set_sprite crashes
-// possibly related to already being set (see above)
-// or just is a piece of shit
-//static int i = 1;
-//static bool set = false;
 void comic_view_update(void* data)
 {
     comic_view_scene_t* cview = data;
-    //clear_screen(GFX_BOTTOM, GFX_LEFT, 0xcc);
+    clear_screen(GFX_BOTTOM, GFX_LEFT, 0xff);
 
     int kdown = hidKeysDown();
-    if (kdown & KEY_A && !cview->wantnextpage) {
+    if (kdown & KEY_A) {
         comic_view_next_page(cview);
+        minimap_new_page(&cview->minimap, cview->pageimage);
+        //dprintf("look at this! page: %p", &cview->pageimage);
+        //cview->minimap.finished = false;
         //image_read_async_abort(&cview->imgasync);
         //cview->imgasync.abort = true;
     }
 
-    comic_view_check_next_page_avail(cview);
-
-    if (cview->imgasync.ready) {
-        draw_sprite(cview->pageimage);
-        //if (i % 10 == 0) {
-        minimap_set_page(&cview->minimap, cview->pageimage);
-        //}
+    //comic_view_check_next_page_avail(cview);
+    //int time = svcGetSystemTicks();
+    bool still_reading = false;
+    u64 time = osGetTime();
+    while (!cview->imgincr.finished && time + 30 > osGetTime()) {
+        image_read_incremental_run(&cview->imgincr);
+        //minimap_new_page(&cview->minimap, cview->pageimage);
+        //dprintf("new page: %p", &cview->pageimage);
+        //dprintf("new page: %p", &cview->pageimage);
+        still_reading = true;
     }
 
+    if (cview->imgincr.ready) {
+        draw_sprite(cview->pageimage);
+        if (still_reading) {
+            minimap_update_page(&cview->minimap);
+        }
+    }
     minimap_update(&cview->minimap);
 }
 

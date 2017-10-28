@@ -60,6 +60,7 @@ bool in_bounds(gfxScreen_t screen, int x, int y)
 }
 
 //void renderer_draw_sprite(renderer_t *renderer, sprite_t *sprite)
+//TODO: x/y swap: cacheperformance
 void draw_sprite(sprite_t *sprite)
 {
     u8* fb = gfxGetFramebuffer(sprite->screen, sprite->side, NULL, NULL);
